@@ -1,12 +1,10 @@
-import logging
-import requests
 import os
 import json
 from ..dto.data_info import DataInfo
 from tqdm import tqdm
 import glob
 from ..utils.extractor_utils import run_standard_spider, compressed2files, download_request
-
+from itertools import islice
 
 class Extractor():
     def __init__(self, path=None, url=None, depth=0, down_ext=['.csv','.xls','.xlsx', ".txt", ".sav", ".zip"], download_dir="data/input"):
@@ -36,10 +34,30 @@ class Extractor():
         filepath = ""
 
         if self.mode == 0: # URL MODE
+            extracted_extentions = set()
             # Run scraper and create a variable with the links on a temporal json with the extraction
             run_standard_spider(self.url, self.depth, self.down_ext)
             with open("Output_scrap.json", 'r', encoding='utf-8') as file:
                 links = json.load(file)
+
+
+            tarea = False
+            while not tarea:
+                if len(links) > 30:
+                    all = input(f"The given link have {len(links)} files. Do you want to download them all? [Y/N] ").lower()
+                    #breakpoint()
+                    if "y" == all:
+                        tarea = True
+                        pass
+                    elif "n" == all:
+                        tarea = True
+                        files2download = int(input(f"How many files do you want to download? [number] "))
+                        assert files2download>0, "Number must be higer than 0" 
+                        links = dict(islice(links.items(),files2download))
+                    else:
+                        pass
+
+            assert links, "Files not found in that link."
             # Set download folder
             if not os.path.exists(self.download_dir):
                 os.makedirs(self.download_dir)
@@ -51,6 +69,7 @@ class Extractor():
                     filepath = download_request(url, filename, self.download_dir)                    
                     # Check if the file is a compressed archive to extract files and add them to the DataInfo dictionary 
                     extracted_files = []
+                    extracted_extentions.add(filepath.split(".")[1])
                     if any(filepath.endswith(ext) for ext in self.compressed_ext):
                         extracted_files = list(compressed2files(filepath, self.download_dir, self.down_ext))
                         for extracted_file in extracted_files:
@@ -70,10 +89,10 @@ class Extractor():
                     dict_datainfo[f"datainfo_{filename}"] = DataInfo(file_path=filepath, url=self.url, description=("..."))
                 # Exception if source are not available
                 except Exception as e:
-                    error = f"{e}"
-                    logging.error(f"Error downloading: \n{e}")
-                    return error
-            
+                    raise ValueError(f"Error downloading: \n{e}")
+                
+            assert dict_datainfo, f"""\nSuccessfully downloaded {extracted_extentions} files. You may have compressed files.\nBut inside those files there are not files of the asked extensions {self.down_ext}\n"""
+
 
         if self.mode == 1: # LOCAL MODE
             # Set variables to create DataInfo dictionary
@@ -98,7 +117,8 @@ class Extractor():
                     dict_datainfo[f"datainfo_{filename}"] = DataInfo(file_path=filename, url="local", description=("..."))
                 except Exception as e:
                         raise ValueError(f"Error: {e}")
-                
+        
+        
         return dict_datainfo
 
     

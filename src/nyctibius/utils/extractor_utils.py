@@ -66,7 +66,7 @@ def compressed2files(input_archive, target_directory, down_ext, current_depth=0,
                             print(f"Extracting nested archive '{file}' at depth {current_depth + 1}")
                             found_files |= set(compressed2files(file_path, target_directory, down_ext, current_depth + 1, max_depth, found_files))
                     elif  ("."+file.split(".")[1].lower()) in down_ext:
-                        print(f"Found file: {file}")
+                        #print(f"Found file: {file}")
                         destination_path = os.path.join(target_directory, os.path.basename(file_path))
                         shutil.move(file_path, destination_path)
                         found_files.add(destination_path)

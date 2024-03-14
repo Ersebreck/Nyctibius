@@ -36,10 +36,8 @@ class Harmonizer:
             self._dataInfoList = list(list_datainfo.values())
             print("Extraction completed")
             return self._dataInfoList
-        except:
-            logging.error(f"Empty DataInfo")
-            self._dataInfoList = list_datainfo
-            return self._dataInfoList
+        except Exception as e:
+                raise ValueError(f"Error extracting: \n{e}")
 
     def transform(self) -> List[DataInfo]:
         print("----------------------")
